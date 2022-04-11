@@ -62,9 +62,11 @@ loadMesh <- function(mesh.f, type="sf") {
 
 
 
-loadHydroVars <- function(date, trinodes, hours, depths, westcoms.dir, sep,
-                          vars=c("temp", "short_wave", "zeta"),
-                          lags=NULL, dayAvg=FALSE) {
+loadHydroVars <- function(date, trinodes,
+                          hours=1:24, depths=0,
+                          westcoms.dir, sep="/",
+                          vars=c("temp"),
+                          dayAvg=TRUE) {
   library(ncdf4); library(tidyverse); library(glue)
   elems <- 1:nrow(trinodes)
 

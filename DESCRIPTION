@@ -12,3 +12,13 @@ Encoding: UTF-8
 LazyData: true
 URL: https://github.com/Sz-Tim/WeStCOMS
 BugReports: https://github.com/Sz-Tim/WeStCOMS/issues
+Imports:
+    tidyverse,
+    glue,
+    lubridate,
+    sf,
+    ncdf4
+Suggests: 
+    knitr,
+    rmarkdown
+VignetteBuilder: knitr
