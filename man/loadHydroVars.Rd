@@ -10,6 +10,7 @@ loadHydroVars(
   vars,
   daySummaryFn = NULL,
   depthSummaryFn = NULL,
+  regional = F,
   sep = "/",
   cores = 1,
   progress = T
@@ -31,6 +32,11 @@ WeStCOMS v2 hydrodynamic files}
 
 \item{depthSummaryFn}{Vector of functions to summarise across depth, one per
 var; if `NULL` (default), single hour is extracted}
+
+\item{regional}{Logical: does sampling.df include rows to calculate regional
+averages? Requires a row for each element to average for each site. For
+example, a row for each element within a 1km radius, with the results
+averaged}
 
 \item{sep}{Directory separation character (Windows: '\\', Unix: '/')}
 

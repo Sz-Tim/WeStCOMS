@@ -42,6 +42,10 @@ loadMesh <- function(mesh.f, type="sf") {
 #'   `NULL` (default), single hour is extracted
 #' @param depthSummaryFn Vector of functions to summarise across depth, one per
 #'   var; if `NULL` (default), single hour is extracted
+#' @param regional Logical: does sampling.df include rows to calculate regional
+#'   averages? Requires a row for each element to average for each site. For
+#'   example, a row for each element within a 1km radius, with the results
+#'   averaged
 #' @param sep Directory separation character (Windows: '\\', Unix: '/')
 #' @param cores Number of cores for extracting in parallel; default is 1
 #' @param progress Logical: Show progress bar?
@@ -51,7 +55,7 @@ loadMesh <- function(mesh.f, type="sf") {
 #'
 #' @examples
 loadHydroVars <- function(sampling.df, westcoms.dir, vars,
-                          daySummaryFn=NULL, depthSummaryFn=NULL,
+                          daySummaryFn=NULL, depthSummaryFn=NULL, regional=F,
                           sep="/", cores=1, progress=T) {
   library(ncdf4); library(tidyverse); library(glue); library(lubridate);
   library(doSNOW); library(foreach)
@@ -161,8 +165,15 @@ loadHydroVars <- function(sampling.df, westcoms.dir, vars,
         }
       }
     }
-    df_i %>% select(obs.id) %>%
+    date_out <- df_i %>% select(obs.id) %>%
       bind_cols(hydro_out)
+    if(regional) {
+      date_out %>% group_by(obs.id) %>%
+        summarise(across(where(is.numeric), mean)) %>%
+        ungroup
+    } else {
+      date_out
+    }
   }
   close(pb)
   stopCluster(cl)
