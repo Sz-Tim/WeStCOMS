@@ -10,3 +10,5 @@ Description: This package helps with loading WeStCOMS meshes, loading the
 License: GPL-3.0
 Encoding: UTF-8
 LazyData: true
+URL: https://github.com/Sz-Tim/WeStCOMS
+BugReports: https://github.com/Sz-Tim/WeStCOMS/issues
