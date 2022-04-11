@@ -31,118 +31,140 @@ loadMesh <- function(mesh.f, type="sf") {
 
 
 
-# TODO: deal with depth. At depth? At depth + above? Whole column?
+
 #' Load hydrodynamic variables from WeStCOMS meshes
 #'
-#' I'm trying to decide how to structure this function and whether to break it up.
 #'
-#' It's most efficient to pull a vector of sites and load each file only once
+#' @param sampling.df Dataframe with a row for each sample. Columns must include
+#'   `site.id`, `obs.id`, `date` (YYYYMMDD), `hour`, `depth`, `grid`,
+#'   `site.elem`, `trinode_1`, `trinode_2`, and `trinode_3`, which can be added
+#'   through a spatial join with the mesh files (see vignette)
+#' @param westcoms.dir Character vector with directories for WeStCOMS v1 and
+#'   WeStCOMS v2 hydrodynamic files
+#' @param vars Character vector of hydrodynamic variables to extract
+#' @param daySummaryFn Vector of functions to summarise by day, one per var; if
+#'   `NULL` (default), single hour is extracted
+#' @param depthSummaryFn Vector of functions to summarise across depth, one per
+#'   var; if `NULL` (default), single hour is extracted
+#' @param sep Directory separation character (Windows: '\\', Unix: '/')
+#' @param cores Number of cores for extracting in parallel; default is 1
 #'
-#' Main uses:
-#' - Pull single hour on a single day at a single depth at each site
-#' - Pull average for one day at a single depth at each site
-#' - Pull average for one day from the surface to a depth at each site
-#'
-#' I think lags should be broken up, with this function run with lagged dates instead
-#'
-#' @param date vector of dates
-#' @param trinodes
-#' @param hours
-#' @param depths
-#' @param westcoms.dir
-#' @param sep
-#' @param vars
-#' @param lags
-#' @param dayAvg
-#'
-#' @return
+#' @return dataframe with site.id, date, and hydrodynamic variables
 #' @export
 #'
 #' @examples
+loadHydroVars <- function(sampling.df, westcoms.dir, vars,
+                          daySummaryFn=NULL, depthSummaryFn=NULL,
+                          sep="/", cores=1) {
+  library(ncdf4); library(tidyverse); library(glue); library(lubridate);
+  library(doSNOW); library(foreach)
 
+  dates <- unique(sampling.df$date)
 
-
-loadHydroVars <- function(date, trinodes,
-                          hours=1:24, depths=0,
-                          westcoms.dir, sep="/",
-                          vars=c("temp"),
-                          dayAvg=TRUE) {
-  library(ncdf4); library(tidyverse); library(glue)
-  elems <- 1:nrow(trinodes)
-
-  # date = lag_0; date - n = lag_n
-  if(is.null(lags)) {
-    vars_all <- paste0(vars, "_lag_0")
-    dates <- date
-  } else {
-    vars_all <- unlist(map(0:lags, ~paste0(vars, "_lag_", .x)))
-    dates <- map_chr(0:lags, ~str_remove_all(ymd(date)-.x, "-"))
-  }
-
-  out <- vector("list", length(vars_all)) %>% setNames(vars_all)
-  hydro_temp <- vector("list", length(vars)) %>% setNames(vars)
-
-  for(i in seq_along(dates)) {
-
-    # load data for focal elements for each date from 0:lags
-    dir_i <- glue("{westcoms.dir}{sep}netcdf_{str_sub(dates[i],1,4)}")
+  cl <- makeCluster(cores)
+  registerDoSNOW(cl)
+  out.df <- foreach(i=seq_along(dates),
+                    .packages=c("ncdf4", "tidyverse", "glue", "lubridate"),
+                    .export=c("sampling.df", "westcoms.dir", "vars", "daySummaryFn", "depthSummaryFn", "sep"),
+                    .combine=rbind) %dopar% {
+    # Load appropriate file
+    rows_i <- which(sampling.df$date==dates[i])
+    df_i <- sampling.df[rows_i,]
+    trinodes_i <- as.matrix(select(df_i, starts_with("trinode")))
+    dir_i <- glue("{westcoms.dir[df_i$grid[1]]}{sep}netcdf_{str_sub(dates[i],1,4)}")
     file_i <- dir(dir_i, glue("{dates[i]}.*nc$"))
     nc_i <- nc_open(glue("{dir_i}{sep}{file_i}"))
+    n_node <- nc_i$dim$node$len
+
+    # Extract variables, take mean of nodes if necessary
+    hydro_extracted <- hydro_out <- vector("list", length(vars)) %>% setNames(vars)
     for(v in seq_along(vars)) {
-      hydro_temp[[vars[v]]] <- meanOfNodes(ncvar_get(nc_i, vars[v]), trinodes)
+      hydro_var <- ncvar_get(nc_i, vars[v])
+      if(dim(hydro_var)[1] == n_node) {
+        hydro_extracted[[vars[v]]] <- meanOfNodes(hydro_var, trinodes_i)
+      } else {
+        hydro_extracted[[vars[v]]] <- valueOfElement(hydro_var, df_i$site.elem)
+      }
     }
-    waterDepth <- c(meanOfNodes(ncvar_get(nc_i, "h"), trinodes))
+    waterDepth <- c(meanOfNodes(ncvar_get(nc_i, "h"), trinodes_i))
     siglay <- abs(ncvar_get(nc_i, "siglay")[1,])
     if("zeta" %in% vars) {
       waterDepth <- hydro_temp[["zeta"]] + waterDepth
+    } else {
+      waterDepth <- meanOfNodes(ncvar_get(nc_i, "zeta"), trinodes_i) + waterDepth
     }
     nc_close(nc_i)
 
-    # calculate and extract appropriate values for each element
+    # summarise as appropriate
     for(v in seq_along(vars)) {
-      name_vi <- glue("{vars[v]}_lag_{i-1}")
-      # indexes = 1:24, hours = 0:23
+      var_dims <- dim(hydro_extracted[[vars[v]]])
+      if(length(var_dims)==2) {  # [elem,hour]
 
-      # short_wave: integrate
-      if(vars[v]=="short_wave") {
-        if(dayAvg | i > 1) {
-          out[[name_vi]] <- map_dbl(elems,
-                                    ~integrateShortWave(hydro_temp[[vars[v]]], .x, 23))
+        if(is.null(daySummaryFn)) {
+          # Extract single hour
+          if(vars[v]=="short_wave") {
+            hydro_out[[vars[v]]] <- map_dbl(1:nrow(df_i),
+                                            ~integrateShortWave(hydro_extracted[[vars[v]]], .x, df_i$hour[.x]))
+          } else {
+            hydro_out[[vars[v]]] <- hydro_extracted[[vars[v]]][,df_i$hour+1]
+          }
+
         } else {
-          out[[name_vi]] <- map_dbl(elems,
-                                    ~integrateShortWave(hydro_temp[[vars[v]]], .x, hours[.x]))
+          # Apply daySummaryFn[v]
+          if(vars[v]=="short_wave") {
+            # Ignore fn, integrate over whole day
+            hydro_out[[vars[v]]] <- map_dbl(1:nrow(df_i),
+                                            ~integrateShortWave(hydro_extracted[[vars[v]]], .x, 23))
+          } else {
+            hydro_out[[vars[v]]] <- apply(hydro_extracted[[vars[v]]], 1, daySummaryFn[[v]])
+          }
         }
       }
+      if(length(var_dims)==3) {  # [elem,siglay,hour]
 
-      # [elem, layer, hour]
-      if(vars[v] %in% c("temp", "u", "v")) {
-        if(dayAvg | i > 1) {
-          # average temperature at a given depth
-          siglays <- apply(depths/waterDepth, 1:2, function(x) which.min(abs(siglay - x)))
-          indexes <- cbind(rep(elems, 24), c(siglays), rep(1:24, each=length(elems)))
-          out[[name_vi]] <- rowMeans(matrix(hydro_temp[[vars[v]]][indexes], nrow=length(elems)))
-        } else {
-          indexes <- cbind(elems, hours+1)
-          siglays <- apply(cbind(waterDepth[indexes]) %*% rbind(siglay) - depths,
+        if(is.null(daySummaryFn)) {
+          # Indexes for extraction
+          siglays <- apply(cbind(waterDepth[,c(df_i$hour+1)]) %*% rbind(siglay) - df_i$depth,
                            1, function(x) which.min(abs(x)))
-          indexes <- cbind(elems, siglays, hours+1)
-          out[[name_vi]] <- hydro_temp[[vars[v]]][indexes]
-        }
-      }
+          ii <- cbind(1:nrow(df_i), siglays, df_i$hour+1)
 
-      # [elem, hour]
-      if(vars[v] %in% c("zeta", "uwind_speed", "vwind_speed")) {
-        if(dayAvg | i > 1) {
-          out[[name_vi]] <- rowMeans(hydro_temp[[vars[v]]])
+          if(is.null(depthSummaryFn)) {
+            # Extract single hour at a single depth
+            hydro_out[[vars[v]]] <- hydro_extracted[[vars[v]]][ii]
+          } else {
+            # Extract single hour from 0-siglay[findDepth], apply depthSummaryFn[v]
+            hydro_out[[vars[v]]] <-
+              map_dbl(1:nrow(df_i),
+                      ~depthSummaryFn[[v]](hydro_extracted[[vars[v]]][.x, 1:ii[.x,2], ii[.x,3]]))
+          }
+
         } else {
-          indexes <- cbind(elems, hours+1)
-          out[[name_vi]] <- hydro_temp[[vars[v]]][indexes]
+          # Indexes for extraction
+          siglays <- apply(df_i$depth/waterDepth, 1:2, function(x) which.min(abs(siglay - x)))
+          ii <- cbind(rep(1:nrow(df_i), 24), c(siglays), rep(1:24, each=nrow(df_i)))
+
+          if(is.null(depthSummaryFn)) {
+            # Apply daySummaryFn[v] to single depth
+            hydro_out[[vars[v]]] <- hydro_extracted[[vars[v]]][ii] %>%
+              matrix(nrow=nrow(df_i)) %>%
+              apply(., 1, daySummaryFn[[v]])
+          } else {
+            # Apply daySummaryFn[v] to depthSummaryFn[v](values)
+            hydro_out[[vars[v]]] <-
+              map_dbl(1:nrow(ii),
+                    ~depthSummaryFn[[v]](hydro_extracted[[vars[v]]][ii[.x,1], 1:ii[.x,2], ii[.x,3]])) %>%
+              matrix(., nrow(df_i)) %>%
+              apply(., 1, daySummaryFn[[v]])
+
+          }
         }
       }
     }
+    df_i %>% select(obs.id) %>%
+      bind_cols(hydro_out)
   }
-
-  return(as_tibble(out))
+  stopCluster(cl)
+  return(out.df)
 }
 
 
@@ -151,6 +173,17 @@ loadHydroVars <- function(date, trinodes,
 
 
 
+#' Find mean of trinodes
+#'
+#' Find the element mean, not weighting by distance (yet)
+#'
+#' @param nc.ar Hydrodynamic variable array
+#' @param node.mx Trinode index matrix
+#'
+#' @return Mean value with same dimensions as nc.ar
+#' @export
+#'
+#' @examples
 meanOfNodes <- function(nc.ar, node.mx) {
   if (length(dim(nc.ar))==1) {
     node1 <- nc.ar[node.mx[,1]]
@@ -171,6 +204,40 @@ meanOfNodes <- function(nc.ar, node.mx) {
 
 
 
+
+#' Find value of element
+#'
+#' Find the element value, not weighting by distance (yet)
+#'
+#' @param nc.ar Hydrodynamic variable array
+#' @param elem.id Element id
+#'
+#' @return Value with same dimensions as nc.ar
+#' @export
+#'
+#' @examples
+valueOfElement <- function(nc.ar, elem.id) {
+  switch(as.character(length(dim(nc.ar))),
+         "1"=nc.ar[elem.id],
+         "2"=nc.ar[elem.id,,drop=F],
+         "3"=nc.ar[elem.id,,,drop=F])
+}
+
+
+
+
+
+#' Integrate daily accumulation of shortwave radiation
+#'
+#' @param shortwave.mx Matrix of short_wave variable [elem, hour]
+#' @param rowNum Row number of shortwave.mx
+#' @param endTime Upper integration time limit (max: 23)
+#' @param startTime Lower integration time limit (min: 0S)
+#'
+#' @return Vector of values, length nrow(shortwave.mx)
+#' @export
+#'
+#' @examples
 integrateShortWave <- function(shortwave.mx, rowNum, endTime, startTime=0) {
   # linear interpolation between hours
   # short_wave units = joules/s
@@ -188,4 +255,23 @@ integrateShortWave <- function(shortwave.mx, rowNum, endTime, startTime=0) {
     hourlyJoules[hour] <- dt*min(varStart, varEnd) + (0.5*dt*abs(dVar))
   }
   return(sum(hourlyJoules))
+}
+
+
+
+
+
+
+#' Find 90th quantile
+#'
+#' Same as quantile(x, probs=0.9), but works with just a single argument
+#'
+#' @param x Vector
+#'
+#' @return
+#' @export
+#'
+#' @examples
+q90 <- function(x) {
+  quantile(x, probs=0.9)
 }
