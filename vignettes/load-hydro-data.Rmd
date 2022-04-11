@@ -1,0 +1,108 @@
+---
+title: "Load WeStCOMS hydrodynamic data"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{load-hydro-data}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r setup}
+library(tidyverse); library(sf); library(lubridate); library(WeStCOMS)
+```
+
+
+# Load mesh file
+
+The WeStCOMS (v1 and v2) mesh files are in the *data/* directory as .gpkg and .nc files. Both include information for element index, element depth, element coordinates, and element nodes.
+
+Any of the four files can be loaded with the `loadMesh()` function.
+
+```{r load_WeStCOMS_mesh}
+if(.Platform$OS.type=="unix") {
+  sep <- "/"
+  westcoms.dir <- c("/media/archiver/common/sa01da-work/minch2/Archive/",
+                    "/media/archiver/common/sa01da-work/WeStCOMS2/Archive/")
+  mesh.f <- c("/home/sa04ts/FVCOM_meshes/WeStCOMS_mesh.gpkg",
+              "/home/sa04ts/FVCOM_meshes/WeStCOMS2_mesh.gpkg")
+} else {
+  sep <- "\\"
+  westcoms.dir <- c("D:\\hydroOut\\minch2\\Archive\\",
+                    "D:\\hydroOut\\WestCOMS2\\Archive\\")
+  mesh.f <- c("data\\WeStCOMS_Mesh.gpkg",
+              "data\\WeStCOMS2_Mesh.gpkg")
+}
+
+
+mesh.sf <- map(mesh.f, loadMesh) 
+str(mesh.sf)
+```
+
+The trinodes specify the nodes for each triangular element. 
+
+Note that the coordinates are OS coordinates using the British National Grid (epsg 27700).
+
+
+
+
+# Load sites
+
+Let's take some example sites. All of the corresponding dates are already loaded. We need to add the element id and trinode information from the mesh file for efficiency. We'll set any dates before 2019-05-02 to WeStCOMS v1 and any dates afterwards as WeStCOMS v2.
+
+```{r load_sites}
+sampling.df <- read_csv("data\\example_sites.csv") %>% 
+  mutate(grid=if_else(ymd(date) < "2019-05-01", 1, 2)) %>%
+  group_by(grid) %>%
+  group_split() %>%
+  map2(.x=., .y=mesh.sf, 
+       ~st_as_sf(.x, coords=c("easting", "northing"), remove=F, crs=27700) %>% 
+         st_join(., .y %>% 
+                   select(-area) %>% 
+                   rename(depth.elem=depth,
+                          site.elem=i)) %>% 
+         filter(!is.na(site.elem)) %>%
+         st_drop_geometry) %>%
+  bind_rows %>%
+  mutate(depth=pmax(depth, depth.elem))
+sampling.df
+```
+
+
+
+
+
+# Extract hour at depth
+
+```{r extract_hour_at_depth}
+var.df <- tibble(var=c("temp", "salinity", "short_wave", 
+                            "u", "v", "ww",
+                            "uwind_speed", "vwind_speed", "precip"),
+                 dayFn=c(mean, mean, integrateShortWave,
+                          q90, q90, q90, 
+                          q90, q90, sum),
+                 depthFn=c(mean, mean, NA,
+                          mean, mean, mean, 
+                          NA, NA, NA))
+hour_depth.df <- sampling.df %>%
+  full_join(loadHydroVars(sampling.df, westcoms.dir, 
+                          var.df$var, var.df$dayFn, var.df$depthFn, 
+                          cores=7, progress=T))
+```
+
+
+
+# Extract day at depth
+
+
+
+
+# Extract day from surface to depth
+
+

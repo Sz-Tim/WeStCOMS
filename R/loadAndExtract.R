@@ -28,10 +28,6 @@ loadMesh <- function(mesh.f, type="sf") {
 
 
 
-
-
-
-
 #' Load hydrodynamic variables from WeStCOMS meshes
 #'
 #'
@@ -48,6 +44,7 @@ loadMesh <- function(mesh.f, type="sf") {
 #'   var; if `NULL` (default), single hour is extracted
 #' @param sep Directory separation character (Windows: '\\', Unix: '/')
 #' @param cores Number of cores for extracting in parallel; default is 1
+#' @param progress Logical: Show progress bar?
 #'
 #' @return dataframe with site.id, date, and hydrodynamic variables
 #' @export
@@ -55,7 +52,7 @@ loadMesh <- function(mesh.f, type="sf") {
 #' @examples
 loadHydroVars <- function(sampling.df, westcoms.dir, vars,
                           daySummaryFn=NULL, depthSummaryFn=NULL,
-                          sep="/", cores=1) {
+                          sep="/", cores=1, progress=T) {
   library(ncdf4); library(tidyverse); library(glue); library(lubridate);
   library(doSNOW); library(foreach)
 
@@ -63,9 +60,13 @@ loadHydroVars <- function(sampling.df, westcoms.dir, vars,
 
   cl <- makeCluster(cores)
   registerDoSNOW(cl)
+  pb <- txtProgressBar(max=length(dates), style=3)
+  updateProgress <- function(n) setTxtProgressBar(pb, n)
+  opts <- list(progress=updateProgress)
   out.df <- foreach(i=seq_along(dates),
                     .packages=c("ncdf4", "tidyverse", "glue", "lubridate"),
                     .export=c("sampling.df", "westcoms.dir", "vars", "daySummaryFn", "depthSummaryFn", "sep"),
+                    .options.snow=opts,
                     .combine=rbind) %dopar% {
     # Load appropriate file
     rows_i <- which(sampling.df$date==dates[i])
@@ -163,6 +164,7 @@ loadHydroVars <- function(sampling.df, westcoms.dir, vars,
     df_i %>% select(obs.id) %>%
       bind_cols(hydro_out)
   }
+  close(pb)
   stopCluster(cl)
   return(out.df)
 }
