@@ -18,7 +18,9 @@ Imports:
     glue,
     lubridate,
     sf,
-    ncdf4
+    ncdf4,
+    doSNOW,
+    foreach
 Suggests: 
     knitr,
     rmarkdown
