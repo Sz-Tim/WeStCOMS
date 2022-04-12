@@ -7,7 +7,7 @@
 extractHydroVars(
   sampling.df,
   westcoms.dir,
-  vars,
+  hydroVars,
   daySummaryFn = NULL,
   depthSummaryFn = NULL,
   regional = F,
@@ -25,7 +25,7 @@ through a spatial join with the mesh files (see vignette)}
 \item{westcoms.dir}{Character vector with directories for WeStCOMS v1 and
 WeStCOMS v2 hydrodynamic files}
 
-\item{vars}{Character vector of hydrodynamic variables to extract}
+\item{hydroVars}{Character vector of hydrodynamic variables to extract}
 
 \item{daySummaryFn}{Vector of functions to summarise by day, one per var; if
 `NULL` (default), single hour is extracted}

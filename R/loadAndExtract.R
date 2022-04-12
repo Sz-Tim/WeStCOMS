@@ -41,7 +41,7 @@ loadMesh <- function(mesh.f, type="sf") {
 #'   through a spatial join with the mesh files (see vignette)
 #' @param westcoms.dir Character vector with directories for WeStCOMS v1 and
 #'   WeStCOMS v2 hydrodynamic files
-#' @param vars Character vector of hydrodynamic variables to extract
+#' @param hydroVars Character vector of hydrodynamic variables to extract
 #' @param daySummaryFn Vector of functions to summarise by day, one per var; if
 #'   `NULL` (default), single hour is extracted
 #' @param depthSummaryFn Vector of functions to summarise across depth, one per
@@ -72,7 +72,7 @@ extractHydroVars <- function(sampling.df, westcoms.dir, hydroVars,
   opts <- list(progress=updateProgress)
   out.df <- foreach(i=seq_along(dates),
                     .packages=c("ncdf4", "tidyverse", "glue", "lubridate"),
-                    .export=c("sampling.df", "westcoms.dir", "vars", "daySummaryFn", "depthSummaryFn", "sep"),
+                    .export=c("sampling.df", "westcoms.dir", "hydroVars", "daySummaryFn", "depthSummaryFn", "sep"),
                     .options.snow=opts,
                     .combine=rbind) %dopar% {
     # Load appropriate file
@@ -85,18 +85,18 @@ extractHydroVars <- function(sampling.df, westcoms.dir, hydroVars,
     n_node <- nc_i$dim$node$len
 
     # Extract variables, take mean of nodes if necessary
-    hydro_extracted <- hydro_out <- vector("list", length(vars)) %>% setNames(vars)
-    for(v in seq_along(vars)) {
-      hydro_var <- ncvar_get(nc_i, vars[v])
+    hydro_extracted <- hydro_out <- vector("list", length(hydroVars)) %>% setNames(hydroVars)
+    for(v in seq_along(hydroVars)) {
+      hydro_var <- ncvar_get(nc_i, hydroVars[v])
       if(dim(hydro_var)[1] == n_node) {
-        hydro_extracted[[vars[v]]] <- meanOfNodes(hydro_var, trinodes_i)
+        hydro_extracted[[hydroVars[v]]] <- meanOfNodes(hydro_var, trinodes_i)
       } else {
-        hydro_extracted[[vars[v]]] <- valueOfElement(hydro_var, df_i$site.elem)
+        hydro_extracted[[hydroVars[v]]] <- valueOfElement(hydro_var, df_i$site.elem)
       }
     }
     waterDepth <- c(meanOfNodes(ncvar_get(nc_i, "h"), trinodes_i))
     siglay <- abs(ncvar_get(nc_i, "siglay")[1,])
-    if("zeta" %in% vars) {
+    if("zeta" %in% hydroVars) {
       waterDepth <- hydro_temp[["zeta"]] + waterDepth
     } else {
       waterDepth <- meanOfNodes(ncvar_get(nc_i, "zeta"), trinodes_i) + waterDepth
@@ -104,27 +104,27 @@ extractHydroVars <- function(sampling.df, westcoms.dir, hydroVars,
     nc_close(nc_i)
 
     # summarise as appropriate
-    for(v in seq_along(vars)) {
-      var_dims <- dim(hydro_extracted[[vars[v]]])
+    for(v in seq_along(hydroVars)) {
+      var_dims <- dim(hydro_extracted[[hydroVars[v]]])
       if(length(var_dims)==2) {  # [elem,hour]
 
         if(is.null(daySummaryFn)) {
           # Extract single hour
-          if(vars[v]=="short_wave") {
-            hydro_out[[vars[v]]] <- map_dbl(1:nrow(df_i),
-                                            ~integrateShortWave(hydro_extracted[[vars[v]]], .x, df_i$hour[.x]))
+          if(hydroVars[v]=="short_wave") {
+            hydro_out[[hydroVars[v]]] <- map_dbl(1:nrow(df_i),
+                                            ~integrateShortWave(hydro_extracted[[hydroVars[v]]], .x, df_i$hour[.x]))
           } else {
-            hydro_out[[vars[v]]] <- hydro_extracted[[vars[v]]][,df_i$hour+1]
+            hydro_out[[hydroVars[v]]] <- hydro_extracted[[hydroVars[v]]][,df_i$hour+1]
           }
 
         } else {
           # Apply daySummaryFn[v]
-          if(vars[v]=="short_wave") {
+          if(hydroVars[v]=="short_wave") {
             # Ignore fn, integrate over whole day
-            hydro_out[[vars[v]]] <- map_dbl(1:nrow(df_i),
-                                            ~integrateShortWave(hydro_extracted[[vars[v]]], .x, 23))
+            hydro_out[[hydroVars[v]]] <- map_dbl(1:nrow(df_i),
+                                            ~integrateShortWave(hydro_extracted[[hydroVars[v]]], .x, 23))
           } else {
-            hydro_out[[vars[v]]] <- apply(hydro_extracted[[vars[v]]], 1, daySummaryFn[[v]])
+            hydro_out[[hydroVars[v]]] <- apply(hydro_extracted[[hydroVars[v]]], 1, daySummaryFn[[v]])
           }
         }
       }
@@ -138,12 +138,12 @@ extractHydroVars <- function(sampling.df, westcoms.dir, hydroVars,
 
           if(is.null(depthSummaryFn)) {
             # Extract single hour at a single depth
-            hydro_out[[vars[v]]] <- hydro_extracted[[vars[v]]][ii]
+            hydro_out[[hydroVars[v]]] <- hydro_extracted[[hydroVars[v]]][ii]
           } else {
             # Extract single hour from 0-siglay[findDepth], apply depthSummaryFn[v]
-            hydro_out[[vars[v]]] <-
+            hydro_out[[hydroVars[v]]] <-
               map_dbl(1:nrow(df_i),
-                      ~depthSummaryFn[[v]](hydro_extracted[[vars[v]]][.x, 1:ii[.x,2], ii[.x,3]]))
+                      ~depthSummaryFn[[v]](hydro_extracted[[hydroVars[v]]][.x, 1:ii[.x,2], ii[.x,3]]))
           }
 
         } else {
@@ -153,14 +153,14 @@ extractHydroVars <- function(sampling.df, westcoms.dir, hydroVars,
 
           if(is.null(depthSummaryFn)) {
             # Apply daySummaryFn[v] to single depth
-            hydro_out[[vars[v]]] <- hydro_extracted[[vars[v]]][ii] %>%
+            hydro_out[[hydroVars[v]]] <- hydro_extracted[[hydroVars[v]]][ii] %>%
               matrix(nrow=nrow(df_i)) %>%
               apply(., 1, daySummaryFn[[v]])
           } else {
             # Apply daySummaryFn[v] to depthSummaryFn[v](values)
-            hydro_out[[vars[v]]] <-
+            hydro_out[[hydroVars[v]]] <-
               map_dbl(1:nrow(ii),
-                    ~depthSummaryFn[[v]](hydro_extracted[[vars[v]]][ii[.x,1], 1:ii[.x,2], ii[.x,3]])) %>%
+                    ~depthSummaryFn[[v]](hydro_extracted[[hydroVars[v]]][ii[.x,1], 1:ii[.x,2], ii[.x,3]])) %>%
               matrix(., nrow(df_i)) %>%
               apply(., 1, daySummaryFn[[v]])
 
