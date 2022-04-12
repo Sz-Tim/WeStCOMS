@@ -58,10 +58,9 @@ loadMesh <- function(mesh.f, type="sf") {
 #' @export
 #'
 #' @examples
-extractHydroVars <- function(sampling.df, westcoms.dir, vars,
+extractHydroVars <- function(sampling.df, westcoms.dir, hydroVars,
                           daySummaryFn=NULL, depthSummaryFn=NULL, regional=F,
                           sep="/", cores=1, progress=T) {
-  library(ncdf4); library(tidyverse); library(glue); library(lubridate);
   library(doSNOW); library(foreach)
 
   dates <- unique(sampling.df$date)
