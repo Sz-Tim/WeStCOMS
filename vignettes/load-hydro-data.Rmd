@@ -91,9 +91,9 @@ var.df <- tibble(var=c("temp", "salinity", "short_wave",
                           mean, mean, mean, 
                           NA, NA, NA))
 hour_depth.df <- sampling.df %>%
-  full_join(loadHydroVars(sampling.df, westcoms.dir, 
-                          var.df$var, var.df$dayFn, var.df$depthFn, 
-                          cores=7, progress=T))
+  full_join(extractHydroVars(sampling.df, westcoms.dir, 
+                             var.df$var, var.df$dayFn, var.df$depthFn, 
+                             cores=7, progress=T))
 ```
 
 

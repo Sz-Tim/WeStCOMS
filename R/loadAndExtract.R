@@ -28,8 +28,12 @@ loadMesh <- function(mesh.f, type="sf") {
 
 
 
-#' Load hydrodynamic variables from WeStCOMS meshes
+#' Extract hydrodynamic variables from WeStCOMS meshes
 #'
+#' Given an input dataframe with site locations, dates, hours, and depths, this
+#' function extracts the corresponding WeStCOMS data. Output can be specific
+#' hours and depths, or summarised for the day or water column (surface to depth
+#' *d*) as given in `daySummaryFn` and `depthSummaryFn`.
 #'
 #' @param sampling.df Dataframe with a row for each sample. Columns must include
 #'   `site.id`, `obs.id`, `date` (YYYYMMDD), `hour`, `depth`, `grid`,
@@ -54,7 +58,7 @@ loadMesh <- function(mesh.f, type="sf") {
 #' @export
 #'
 #' @examples
-loadHydroVars <- function(sampling.df, westcoms.dir, vars,
+extractHydroVars <- function(sampling.df, westcoms.dir, vars,
                           daySummaryFn=NULL, depthSummaryFn=NULL, regional=F,
                           sep="/", cores=1, progress=T) {
   library(ncdf4); library(tidyverse); library(glue); library(lubridate);
