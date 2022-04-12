@@ -28,16 +28,15 @@ Any of the four files can be loaded with the `loadMesh()` function.
 ```{r load_WeStCOMS_mesh}
 if(.Platform$OS.type=="unix") {
   sep <- "/"
-  westcoms.dir <- c("/media/archiver/common/sa01da-work/minch2/Archive/",
-                    "/media/archiver/common/sa01da-work/WeStCOMS2/Archive/")
-  mesh.f <- c("/home/sa04ts/FVCOM_meshes/WeStCOMS_mesh.gpkg",
-              "/home/sa04ts/FVCOM_meshes/WeStCOMS2_mesh.gpkg")
+  westcoms.dir <- paste0("/media/archiver/common/sa01da-work/",
+                         c("minch2/Archive/", "WeStCOMS2/Archive/"))
+  mesh.f <- paste0("/home/sa04ts/FVCOM_meshes/",
+                   c("WeStCOMS_mesh.gpkg", "WeStCOMS2_mesh.gpkg"))
 } else {
   sep <- "\\"
-  westcoms.dir <- c("D:\\hydroOut\\minch2\\Archive\\",
-                    "D:\\hydroOut\\WestCOMS2\\Archive\\")
-  mesh.f <- c("data\\WeStCOMS_Mesh.gpkg",
-              "data\\WeStCOMS2_Mesh.gpkg")
+  westcoms.dir <- paste0("D:\\hydroOut\\", 
+                         c("minch2\\Archive\\", "WeStCOMS2\\Archive\\"))
+  mesh.f <- paste0("data\\", c("WeStCOMS_mesh.gpkg", "WeStCOMS2_mesh.gpkg"))
 }
 
 
@@ -70,7 +69,7 @@ sampling.df <- read_csv("data\\example_sites.csv") %>%
          filter(!is.na(site.elem)) %>%
          st_drop_geometry) %>%
   bind_rows %>%
-  mutate(depth=pmax(depth, depth.elem))
+  mutate(depth=pmin(depth, depth.elem))
 sampling.df
 ```
 

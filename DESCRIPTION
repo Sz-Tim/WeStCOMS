@@ -6,7 +6,8 @@ Author: Tim Szewczyk
 Maintainer: Tim Szewczyk <tim.szewczyk@sams.ac.uk>
 Description: This package helps with loading WeStCOMS meshes, loading the 
     hydrodynamic variables, and summarising them. It assumes you already have
-    the files downloaded, which are publicly available on the [thredds server](https://thredds.sams.ac.uk/thredds/catalog/SCOATS.html)
+    the files downloaded, which are publicly available on the thredds server at
+    <https://thredds.sams.ac.uk/thredds/catalog/SCOATS.html>.
 License: GPL-3.0
 Encoding: UTF-8
 LazyData: true
