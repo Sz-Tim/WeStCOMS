@@ -13,7 +13,8 @@ extractHydroVars(
   regional = F,
   sep = "/",
   cores = 1,
-  progress = T
+  progress = T,
+  errorhandling = "remove"
 )
 }
 \arguments{
@@ -43,6 +44,8 @@ averaged}
 \item{cores}{Number of cores for extracting in parallel; default is 1}
 
 \item{progress}{Logical: Show progress bar?}
+
+\item{errorhandling}{Passed to `foreach`: one of "stop", "remove", or "pass"}
 }
 \value{
 dataframe with site.id, date, and hydrodynamic variables
