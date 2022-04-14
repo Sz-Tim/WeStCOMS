@@ -1,5 +1,5 @@
-# HABReports Bayesian modelling
-# WeStCOMS processing functions
+# WeStCOMS
+# Loading and extraction functions
 # Tim Szewczyk
 
 
