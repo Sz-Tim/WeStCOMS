@@ -24,7 +24,7 @@ multijetlag <- function(data, ..., n=10){
 
   quosures <- map2(combos$indices, combos$var,
                    ~quo(lag(!!.y, !!.x)) ) %>%
-    set_names(paste("lag", combos$indices, map_chr(combos$var, quo_text), sep = "_"))
+    set_names(paste(map_chr(combos$var, quo_text), combos$indices, sep = "_"))
   mutate( data, !!!quosures )
 
 }
