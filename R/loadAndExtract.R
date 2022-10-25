@@ -54,6 +54,7 @@ loadMesh <- function(mesh.f, type="sf") {
 #' @param cores Number of cores for extracting in parallel; default is 1
 #' @param progress Logical: Show progress bar?
 #' @param errorhandling Passed to `foreach`: one of "stop", "remove", or "pass"
+#' @param returnFullDf Logical: return full dataframe or only obs.id + hydrovars?
 #'
 #' @return dataframe with site.id, date, and hydrodynamic variables
 #' @export
@@ -61,7 +62,8 @@ loadMesh <- function(mesh.f, type="sf") {
 #' @examples
 extractHydroVars <- function(sampling.df, westcoms.dir, hydroVars,
                           daySummaryFn=NULL, depthSummaryFn=NULL, regional=F,
-                          sep="/", cores=1, progress=T, errorhandling="remove") {
+                          sep="/", cores=1, progress=T, errorhandling="remove",
+                          returnFullDf=FALSE) {
   library(doSNOW); library(foreach)
 
   dates <- unique(sampling.df$date)
@@ -182,6 +184,9 @@ extractHydroVars <- function(sampling.df, westcoms.dir, hydroVars,
   }
   close(pb)
   stopCluster(cl)
+  if(returnFullDf) {
+    out.df <- full_join(sampling.df, out.df, by="obs.id")
+  }
   return(out.df)
 }
 
