@@ -185,7 +185,7 @@ extractHydroVars <- function(sampling.df, westcoms.dir, hydroVars,
   close(pb)
   stopCluster(cl)
   if(returnFullDf) {
-    out.df <- full_join(sampling.df, out.df, by="obs.id")
+    out.df <- full_join(as.data.frame(sampling.df), as.data.frame(out.df), by="obs.id")
   }
   return(out.df)
 }
