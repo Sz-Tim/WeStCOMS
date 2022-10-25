@@ -14,7 +14,8 @@ extractHydroVars(
   sep = "/",
   cores = 1,
   progress = T,
-  errorhandling = "remove"
+  errorhandling = "remove",
+  returnFullDf = FALSE
 )
 }
 \arguments{
@@ -46,6 +47,8 @@ averaged}
 \item{progress}{Logical: Show progress bar?}
 
 \item{errorhandling}{Passed to `foreach`: one of "stop", "remove", or "pass"}
+
+\item{returnFullDf}{Logical: return full dataframe or only obs.id + hydrovars?}
 }
 \value{
 dataframe with site.id, date, and hydrodynamic variables
