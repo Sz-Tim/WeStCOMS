@@ -298,3 +298,85 @@ integrateShortWave <- function(shortwave.mx, rowNum, endTime, startTime=0) {
 q90 <- function(x) {
   quantile(x, probs=0.9)
 }
+
+
+
+
+#' Extract variables from WeStCOMS-WRF (Weather Research Forecasting) model
+#'
+#' Given an input dataframe with site locations and dates, this function
+#' extracts the corresponding WeStCOMS-WRF data. Output is summarised for the
+#' day as given in `daySummaryFn`.
+#'
+#' @param sampling.df Dataframe with a row for each sample. Columns must include
+#'   `site.id`, `obs.id`, `date` (YYYYMMDD), `wrf_i`, `lon`, `lat`, where
+#'   `wrf_i` indicates the corresponding rownumber in the dataframe wrf_i
+#' @param wrf.dir Character vector with directory for WRF files
+#' @param wrf_i Dataframe with WRF filenames and date ranges in yyyy-mm-dd
+#'   (required column names: fname, date_0, date_1)
+#' @param returnFullDf Logical: return full dataframe or only obs.id +
+#'   hydrovars?
+#'
+#' @return dataframe with site.id, date, and WRF variables
+#' @export
+#'
+#' @examples
+extractWRF <- function(sampling.df, wrf.dir, wrf_i, returnFullDf=FALSE) {
+
+  out.ls <- vector("list", n_distinct(sampling.df$wrf_i))
+  for(i in unique(sampling.df$wrf_i)) {
+    nc <- nc_open(paste0(wrf.dir, wrf_i$fname[i]))
+    times.df <- tibble(Times=ncvar_get(nc, "Times")) %>%
+      mutate(Time.dt=as_datetime(str_replace(Times, "_", " ")),
+             date=date(Time.dt))
+
+    lon <- ncvar_get(nc, "XLONG")
+    lat <- ncvar_get(nc, "XLAT")
+    coord.rows <- matrix(1:nrow(lon), nrow=nrow(lon), ncol=ncol(lon))
+    coord.cols <- matrix(1:ncol(lon), nrow=nrow(lon), ncol=ncol(lon), byrow=T)
+    coord.wrf <- tibble(lon=c(lon),
+                        lat=c(lat),
+                        row=c(coord.rows),
+                        col=c(coord.cols)) %>%
+      st_as_sf(coords=c("lon", "lat"), crs=4326)
+
+    samp_i <- sampling.df %>% filter(wrf_i==i) %>%
+      mutate(wrf_coord=st_nearest_feature(., coord.wrf),
+             wrf_row=coord.wrf$row[wrf_coord],
+             wrf_col=coord.wrf$col[wrf_coord])
+
+    U <- ncvar_get(nc, "U10")
+    V <- ncvar_get(nc, "V10")
+    Shortwave <- ncvar_get(nc, "Shortwave")
+    Precip <- ncvar_get(nc, "Precipitation")
+    sst <- ncvar_get(nc, "sst")
+    nc_close(nc)
+    var_ij <- vector("list", nrow(samp_i))
+
+    for(j in 1:nrow(samp_i)) {
+      dims_ij <- list(lon=samp_i$wrf_row[j],
+                      lat=samp_i$wrf_col[j],
+                      time=which(times.df$date == samp_i$date[j]))
+      U_ij <- U[dims_ij$lon, dims_ij$lat, dims_ij$time]
+      V_ij <- V[dims_ij$lon, dims_ij$lat, dims_ij$time]
+      var_ij[[j]] <- tibble(
+        obs.id=samp_i$obs.id[j],
+        site.id=samp_i$site.id[j],
+        date=samp_i$date[j],
+        U_mn=mean(U_ij),
+        V_mn=mean(V_ij),
+        UV_speed=q90(sqrt(U_ij^2 + V_ij^2)),
+        UV_mnDir=mean(atan2(V_ij, U_ij)),
+        Shortwave=sum(Shortwave[dims_ij$lon, dims_ij$lat, dims_ij$time]),
+        Precip=sum(Precip[dims_ij$lon, dims_ij$lat, dims_ij$time]),
+        sst=mean(sst[dims_ij$lon, dims_ij$lat, dims_ij$time])
+      )
+    }
+    out.ls[[i]] <- do.call('rbind', var_ij)
+  }
+  if(returnFullDf) {
+    return(sampling.df %>% left_join(do.call('rbind', out.ls)))
+  } else {
+    return(do.call('rbind', out.ls))
+  }
+}

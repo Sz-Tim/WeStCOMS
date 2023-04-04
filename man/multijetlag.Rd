@@ -13,9 +13,6 @@ multijetlag(data, ..., n = 10)
 
 \item{n}{Number of lags}
 }
-\value{
-
-}
 \description{
 From https://stackoverflow.com/questions/55814028/multiple-lags-with-dplyr
 }
