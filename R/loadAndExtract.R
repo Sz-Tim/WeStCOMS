@@ -84,7 +84,7 @@ extractHydroVars <- function(sampling.df, westcoms.dir, hydroVars,
     df_i <- sampling.df[rows_i,]
     trinodes_i <- as.matrix(select(df_i, starts_with("trinode")))
     dir_i <- glue("{westcoms.dir[df_i$grid[1]]}{sep}netcdf_{str_sub(dates[i],1,4)}")
-    file_i <- dir(dir_i, glue("{dates[i]}.*nc$"))
+    file_i <- grep("avg|restart", dir(dir_i, glue("{dates[i]}.*nc$")), invert=T, value=T)
     nc_i <- nc_open(glue("{dir_i}{sep}{file_i}"))
     n_node <- nc_i$dim$node$len
 
