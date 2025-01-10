@@ -11,10 +11,9 @@
 #' @param ... Unquoted variable names to lag
 #' @param n Number of lags
 #'
-#' @return
+#' @return dataframe with lags added
 #' @export
 #'
-#' @examples
 multijetlag <- function(data, ..., n=10){
   library(rlang)
   variable <- enquos(...)

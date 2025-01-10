@@ -41,7 +41,9 @@ if(.Platform$OS.type=="unix") {
 
 
 mesh.sf <- map(mesh.f, loadMesh) 
+mesh.nc <- map(mesh.f, ~loadMesh(.x, type="nc"))
 str(mesh.sf)
+mesh.nc
 ```
 
 The trinodes specify the nodes for each triangular element. 

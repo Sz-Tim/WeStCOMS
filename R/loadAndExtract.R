@@ -12,7 +12,6 @@
 #' @return Mesh object (ncdf or sf)
 #' @export
 #'
-#' @examples
 loadMesh <- function(mesh.f, type="sf") {
   switch(type,
          sf=sf::st_read(mesh.f),
@@ -59,7 +58,6 @@ loadMesh <- function(mesh.f, type="sf") {
 #' @return dataframe with site.id, date, and hydrodynamic variables
 #' @export
 #'
-#' @examples
 extractHydroVars <- function(sampling.df, westcoms.dir, hydroVars,
                           daySummaryFn=NULL, depthSummaryFn=NULL, regional=F,
                           sep="/", cores=1, progress=T, errorhandling="remove",
@@ -206,7 +204,6 @@ extractHydroVars <- function(sampling.df, westcoms.dir, hydroVars,
 #' @return Mean value with same dimensions as nc.ar
 #' @export
 #'
-#' @examples
 meanOfNodes <- function(nc.ar, node.mx) {
   if (length(dim(nc.ar))==1) {
     node1 <- nc.ar[node.mx[,1]]
@@ -238,7 +235,6 @@ meanOfNodes <- function(nc.ar, node.mx) {
 #' @return Value with same dimensions as nc.ar
 #' @export
 #'
-#' @examples
 valueOfElement <- function(nc.ar, elem.id) {
   switch(as.character(length(dim(nc.ar))),
          "1"=nc.ar[elem.id],
@@ -260,7 +256,6 @@ valueOfElement <- function(nc.ar, elem.id) {
 #' @return Vector of values, length nrow(shortwave.mx)
 #' @export
 #'
-#' @examples
 integrateShortWave <- function(shortwave.mx, rowNum, endTime, startTime=0) {
   # linear interpolation between hours
   # short_wave units = joules/s
@@ -291,10 +286,9 @@ integrateShortWave <- function(shortwave.mx, rowNum, endTime, startTime=0) {
 #'
 #' @param x Vector
 #'
-#' @return
+#' @return vector of quantiles
 #' @export
 #'
-#' @examples
 q90 <- function(x) {
   quantile(x, probs=0.9)
 }
@@ -320,7 +314,6 @@ q90 <- function(x) {
 #' @return dataframe with site.id, date, and WRF variables
 #' @export
 #'
-#' @examples
 extractWRF <- function(sampling.df, wrf.dir, wrf_i, returnFullDf=FALSE) {
 
   out.ls <- vector("list", n_distinct(sampling.df$wrf_i))

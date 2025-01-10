@@ -9,6 +9,9 @@ q90(x)
 \arguments{
 \item{x}{Vector}
 }
+\value{
+vector of quantiles
+}
 \description{
 Same as quantile(x, probs=0.9), but works with just a single argument
 }
