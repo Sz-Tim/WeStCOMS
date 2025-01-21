@@ -93,7 +93,7 @@ create_mesh_files_from_nc <- function(nc_file, open_elems_csv, out_dir, domain) 
   # create mesh.nc ----------------------------------------------------------
 
   if(!is.null(open_elems_csv)) {
-    mesh.nc <- nc_create(glue("{out.dir}/{domain}_mesh.nc"), mesh.vars)
+    mesh.nc <- nc_create(glue("{out_dir}/{domain}_mesh.nc"), mesh.vars)
     iwalk(names(mesh.vars), ~ncvar_put(mesh.nc, .x, nc[[.x]]))
     nc_close(mesh.nc)
   }
@@ -117,17 +117,17 @@ create_mesh_files_from_nc <- function(nc_file, open_elems_csv, out_dir, domain) 
     st_as_sf(crs=27700) %>%
     mutate(area=st_area(.)) %>%
     select(i, area, depth, trinode_1, trinode_2, trinode_3, geom)
-  write_sf(mesh.sf, glue("{out.dir}/{domain}_mesh{suffix}.gpkg"))
+  write_sf(mesh.sf, glue("{out_dir}/{domain}_mesh{suffix}.gpkg"))
 
   if(!is.null(open_elems_csv)) {
     mesh.footprint <- mesh.sf %>% st_union
-    write_sf(mesh.footprint, glue("{out.dir}/{domain}_mesh_footprint.gpkg"))
+    write_sf(mesh.footprint, glue("{out_dir}/{domain}_mesh_footprint.gpkg"))
   }
 
   if(is.null(open_elems_csv)) {
-    return(glue("Please open {out.dir}/{domain}_mesh{suffix}.gpkg and identify open boundary elements."))
+    return(glue("Please open {out_dir}/{domain}_mesh{suffix}.gpkg and identify open boundary elements."))
   } else {
-    return("Created {domain}_mesh.gpkg, {domain}_mesh_footprint.gpkg, and {domain}_mesh.nc in {out.dir}")
+    return(glue("Created {domain}_mesh.gpkg, {domain}_mesh_footprint.gpkg, and {domain}_mesh.nc in {out_dir}"))
   }
 
 }

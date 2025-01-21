@@ -15,25 +15,32 @@ download_from_thredds(
 )
 }
 \arguments{
-\item{domain}{Character. The domain to download data from. Options are "westcoms2" or "etive28". Default is "westcoms2".}
+\item{domain}{Character. The domain to download data from. Options are
+"westcoms2" or "etive28". Default is "westcoms2".}
 
 \item{year}{Numeric. The year of the data to download. Default is 2024.}
 
-\item{out_dir}{Character. The output directory where the downloaded files will be saved. Default is "~/".}
+\item{out_dir}{Character. The output directory where the downloaded files
+will be saved. Default is "~/".}
 
-\item{cores}{Numeric. The number of cores to use for parallel processing. Default is 4.}
+\item{cores}{Numeric. The number of cores to use for parallel processing.
+Default is 4.}
 
-\item{overwrite}{Logical. Whether to overwrite existing files. Default is FALSE.}
+\item{overwrite}{Logical. Whether to overwrite existing files. Default is
+FALSE.}
 
-\item{start_ymd}{Date. The start date for the data to download. Default is NULL, which sets it to January 1st of the specified year.}
+\item{start_ymd}{Date. The start date for the data to download. Default is
+NULL, which sets it to January 1st of the specified year.}
 
-\item{end_ymd}{Date. The end date for the data to download. Default is NULL, which sets it to December 31st of the specified year.}
+\item{end_ymd}{Date. The end date for the data to download. Default is NULL,
+which sets it to December 31st of the specified year.}
 }
 \value{
 None. The function downloads files to the specified output directory.
 }
 \description{
-This function downloads NetCDF files from a specified THREDDS server catalog for a given domain and year.
+This function downloads NetCDF files from a specified THREDDS server catalog
+for a given domain and year.
 }
 \examples{
 download_from_thredds(domain="westcoms2", year=2024, out_dir="~/data", cores=4, overwrite=FALSE, start_ymd=NULL, end_ymd=NULL)
