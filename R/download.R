@@ -24,7 +24,7 @@
 #'
 #' @examples
 #' download_from_thredds(domain="westcoms2", year=2024, out_dir="~/data", cores=4, overwrite=FALSE, start_ymd=NULL, end_ymd=NULL)
-download_from_thredds <- function(domain="westcoms2",
+download_from_thredds <- function(domain="westcoms2-nc",
                                   year=2024,
                                   out_dir="~/",
                                   cores=4,
@@ -37,16 +37,16 @@ download_from_thredds <- function(domain="westcoms2",
 
   if(!is.null(start_ymd)) year <- year(start_ymd)
   domain_name <- switch(domain,
-                        westcoms2="WeStCOMS2",
-                        etive28="etive28",
-                        swan="WeStCOMS2")
+                        "westcoms2-nc"="WeStCOMS2",
+                        "etive28"="etive28",
+                        "swan"="WeStCOMS2")
   if(domain=="swan") {
     catalog <- glue("https://thredds.sams.ac.uk/thredds/catalog/scoats-westcoms2/SWAN/Archive_forecast/netcdf_{year}F/catalog.html")
     file_base <- glue("https://thredds.sams.ac.uk/thredds/fileServer/scoats-westcoms2/SWAN/Archive_forecast/netcdf_{year}F/")
     out_dir <- glue("{out_dir}/WeStCOMS2/SWAN/Archive_forecast/netcdf_{year}F/")
   } else {
-    catalog <- glue("https://thredds.sams.ac.uk/thredds/catalog/scoats-{domain}-nc/Archive/netcdf_{year}/catalog.html")
-    file_base <- glue("https://thredds.sams.ac.uk/thredds/fileServer/scoats-{domain}-nc/Archive/netcdf_{year}/")
+    catalog <- glue("https://thredds.sams.ac.uk/thredds/catalog/scoats-{domain}/Archive/netcdf_{year}/catalog.html")
+    file_base <- glue("https://thredds.sams.ac.uk/thredds/fileServer/scoats-{domain}/Archive/netcdf_{year}/")
     out_dir <- glue("{out_dir}/{domain_name}/Archive/netcdf_{year}/")
   }
   dir.create(out_dir, showWarnings=F, recursive=T)
