@@ -45,8 +45,8 @@ download_from_thredds <- function(domain="westcoms2",
     file_base <- glue("https://thredds.sams.ac.uk/thredds/fileServer/scoats-westcoms2/SWAN/Archive_forecast/netcdf_{year}F/")
     out_dir <- glue("{out_dir}/WeStCOMS2/SWAN/Archive_forecast/netcdf_{year}F/")
   } else {
-    catalog <- glue("https://thredds.sams.ac.uk/thredds/catalog/scoats-{domain}/Archive/netcdf_{year}/catalog.html")
-    file_base <- glue("https://thredds.sams.ac.uk/thredds/fileServer/scoats-{domain}/Archive/netcdf_{year}/")
+    catalog <- glue("https://thredds.sams.ac.uk/thredds/catalog/scoats-{domain}-nc/Archive/netcdf_{year}/catalog.html")
+    file_base <- glue("https://thredds.sams.ac.uk/thredds/fileServer/scoats-{domain}-nc/Archive/netcdf_{year}/")
     out_dir <- glue("{out_dir}/{domain_name}/Archive/netcdf_{year}/")
   }
   dir.create(out_dir, showWarnings=F, recursive=T)
@@ -101,7 +101,7 @@ download_nc <- function(nc_links, file_base, out_dir) {
   ) %dofuture% {
     options(timeout=3600*5)
     if( !file.exists(glue("{out_dir}{i}")) ) {
-      download.file(glue("{file_base}{i}"), glue("{out_dir}{i}"), method="wget")
+      download.file(glue("{file_base}{i}"), glue("{out_dir}{i}"), method="auto")
     }
     p(sprintf("i=%s", i))
   }
