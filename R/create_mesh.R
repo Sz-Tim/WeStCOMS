@@ -16,7 +16,7 @@
 #'
 #' @examples
 #' create_mesh_from_nc(nc_file="path/to/nc_file.nc", open_elems_csv="path/to/open_elems.csv", out_dir="~/output", domain="WeStCOMS2")
-create_mesh_files_from_nc <- function(nc_file, open_elems_csv, out_dir, domain) {
+create_mesh_files_from_nc <- function(nc_file, open_elems_csv=NULL, out_dir, domain) {
 
   library(tidyverse); library(ncdf4); library(sf); library(glue)
 

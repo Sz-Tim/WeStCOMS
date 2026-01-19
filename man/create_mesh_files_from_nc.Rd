@@ -4,7 +4,7 @@
 \alias{create_mesh_files_from_nc}
 \title{Create Mesh Files from NetCDF File}
 \usage{
-create_mesh_files_from_nc(nc_file, open_elems_csv, out_dir, domain)
+create_mesh_files_from_nc(nc_file, open_elems_csv = NULL, out_dir, domain)
 }
 \arguments{
 \item{nc_file}{Character. The path to the NetCDF file.}
