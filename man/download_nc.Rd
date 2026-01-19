@@ -4,7 +4,7 @@
 \alias{download_nc}
 \title{Download NetCDF Files}
 \usage{
-download_nc(nc_links, file_base, out_dir)
+download_nc(nc_links, file_base, out_dir, OPeNDAP = NULL)
 }
 \arguments{
 \item{nc_links}{Character vector. A list of NetCDF file links to download.}
@@ -12,6 +12,9 @@ download_nc(nc_links, file_base, out_dir)
 \item{file_base}{Character. The base URL for the files to be downloaded.}
 
 \item{out_dir}{Character. The output directory where the downloaded files will be saved.}
+
+\item{OPeNDAP}{Character string to append to url to only download select
+variables. Default is NULL, which downloads full file}
 }
 \value{
 None. The function downloads files to the specified output directory.

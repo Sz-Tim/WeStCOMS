@@ -5,13 +5,14 @@
 \title{Download NetCDF Files from THREDDS Server}
 \usage{
 download_from_thredds(
-  domain = "westcoms2",
-  year = 2024,
+  domain = "westcoms3",
+  year = 2025,
   out_dir = "~/",
   cores = 4,
   overwrite = FALSE,
   start_ymd = NULL,
-  end_ymd = NULL
+  end_ymd = NULL,
+  OPeNDAP = NULL
 )
 }
 \arguments{
@@ -34,6 +35,9 @@ NULL, which sets it to January 1st of the specified year.}
 
 \item{end_ymd}{Date. The end date for the data to download. Default is NULL,
 which sets it to December 31st of the specified year.}
+
+\item{OPeNDAP}{Character string to append to url to only download select
+variables. Default is NULL, which downloads full file}
 }
 \value{
 None. The function downloads files to the specified output directory.
