@@ -86,7 +86,11 @@ download_from_thredds <- function(domain="westcoms3",
   nc_links <- map(dates, ~grep(.x, westcom_links, value=T) |> basename()) |>
     do.call('c', args=_)
 
-  plan(multisession, workers=cores)
+  if(get_os()=="unix") {
+    plan(multicore, workers=cores)
+  } else {
+    plan(multisession, workers=cores)
+  }
   handlers(global=T)
   download_nc(nc_links, file_base, out_dir, OPeNDAP)
   plan(sequential)
