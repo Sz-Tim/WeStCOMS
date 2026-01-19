@@ -30,7 +30,7 @@ multijetlag <- function(data, ..., n=10){
 
 
 get_os <- function() {
-  if(Sys.info()$sysname=="windows") {
+  if(Sys.info()["sysname"]=="Windows") {
     return("windows")
   } else {
     return("unix")
