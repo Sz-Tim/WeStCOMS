@@ -92,7 +92,7 @@ download_from_thredds <- function(domain="westcoms3",
     plan(multisession, workers=cores)
   }
   handlers(global=T)
-  download_nc(nc_links, file_base, out_dir, OPeNDAP)
+  download_nc(nc_links, file_base, out_dir, overwrite, OPeNDAP)
   plan(sequential)
 }
 
@@ -115,7 +115,7 @@ download_from_thredds <- function(domain="westcoms3",
 #'
 #' @examples
 #' download_nc(nc_links=c("file1.nc", "file2.nc"), file_base="https://example.com/files/", out_dir="~/data/")
-download_nc <- function(nc_links, file_base, out_dir, OPeNDAP=NULL) {
+download_nc <- function(nc_links, file_base, out_dir, overwrite, OPeNDAP=NULL) {
   library(tidyverse); library(ncdf4); library(lubridate); library(glue);
   library(xml2); library(rvest)
   library(doFuture); library(progressr)
@@ -126,22 +126,22 @@ download_nc <- function(nc_links, file_base, out_dir, OPeNDAP=NULL) {
             .options.future=list(globals=structure(TRUE, add=c("file_base", "out_dir")))
     ) %dofuture% {
       options(timeout=3600*5)
-      if( !file.exists(glue("{out_dir}{i}")) ) {
+      if(overwrite | !file.exists(glue("{out_dir}{i}")) ) {
         download.file(glue("{file_base}{i}"), glue("{out_dir}{i}"), method="auto")
       }
       p(sprintf("i=%s", i))
     }
   } else {
-    p <- progressor(along=nc_links)
+    # p <- progressor(along=nc_links)
     foreach(i=nc_links,
             .errorhandling="pass",
             .options.future=list(globals=structure(TRUE, add=c("file_base", "out_dir", "OPeNDAP")))
     ) %dofuture% {
       options(timeout=3600*5)
-      if( !file.exists(glue("{out_dir}{i}")) ) {
+      if(overwrite | !file.exists(glue("{out_dir}{i}")) ) {
         download_nc_opendap(glue("{file_base}{i}{OPeNDAP}"), glue("{out_dir}{i}"))
       }
-      p(sprintf("i=%s", i))
+      # p(sprintf("i=%s", i))
     }
   }
 
